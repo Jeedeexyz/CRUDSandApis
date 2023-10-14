@@ -6,12 +6,16 @@ const controller = require("../controllers/login");
 const  authenticateWithToken  = require("../middleware/authWithToken");
 const authenticateWithRole = require("../middleware/authWithRole")
 const authWithRoleAtSingin = require("../middleware/authWithRoleAtSingin")
+const authForSuperAdminAcess = require("../middleware/authWithRoleAndAccess")
 
 //Create user
 router.post("/signup", controller.SignupUser);
 
 //Signin the user
-router.post("/signin",authWithRoleAtSingin(["Admin","Manager","Leader"]), controller.LoginUser)
+router.post("/signin",authWithRoleAtSingin(["Admin","Manager","Customer","Leader","SuperAdmin"]),controller.LoginUser)
+// Super Admin route to create user and update the roles of users
+
+router.post("/fullAccess",authForSuperAdminAcess,controller.registerUserAndUpdateRole)
 
 //Forget route
 router.post("/forget",controller.forgetPassword)

@@ -3,13 +3,14 @@ const jwt = require("jsonwebtoken");
 const loginTest = require("../models/login");
 const dotenv = require("dotenv")
 const nodemailer = require("nodemailer");
+const { nextTick } = require("process");
 dotenv.config();
 
 // Sign-up Api or controller function
 
 const SignupUser = async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const { username, email, password} = req.body;
     const hashPassword = await bcrypt.hash(password, 10);
     const loginUser = new loginTest({
       username,
@@ -37,6 +38,49 @@ const LoginUser = async (req, res) => {
     }
   } catch (error) {
     res.status(500).json({ message:"Error in controller" });
+  }
+};
+
+//This will be only access by Super Admin to add users and update there roles
+
+const registerUserAndUpdateRole = async (req, res) => {
+  try {
+    const { email, role } = req.body;
+    const userExistenceCheck = await loginTest.findOne({ email });
+    if (userExistenceCheck) {
+      try {
+        const dataAgainstEmail = await loginTest.findOneAndUpdate(
+          { email },
+          {
+            role,
+          },
+          { new: true }
+        );
+        res.json(dataAgainstEmail);
+      } catch (error) {
+        res.json({
+          message:
+            "The email is not registered please register it with role to edit it's role again!",
+        });
+      }
+    } else {
+      try {
+        const { username, email, password, role } = req.body;
+        const hashPassword = await bcrypt.hash(password, 10);
+        const loginUser = new loginTest({
+          username,
+          email,
+          password: hashPassword,
+          role,
+        });
+        await loginUser.save();
+        res.status(201).json({ message: "User created !" });
+      } catch (error) {
+        res.status(500).json({ error: error.message });
+      }
+    }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 };
 
@@ -218,6 +262,7 @@ const getAllData = async (req, res) => {
 module.exports = {
   SignupUser,
   LoginUser,
+  registerUserAndUpdateRole,
   forgetPassword,
   forgetPasswordWithOTP,
   reset,

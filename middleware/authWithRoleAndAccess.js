@@ -1,7 +1,7 @@
 const jwt = require("jsonwebtoken");
 
 
-const authWithRole = () => (req, res, next) => {
+const authWithRoleAndFullAccess = (req, res, next) => {
   try {
    req.headers.authorization && 
     req.headers.authorization.startsWith("Bearer");
@@ -16,7 +16,7 @@ const authWithRole = () => (req, res, next) => {
         return res.status(403).json({ message: "Invalid Token" });
       }
 
-      if (user.role === "Super Admin") {
+      if (user.role === "SuperAdmin") {
       
         next();
 
@@ -32,4 +32,4 @@ const authWithRole = () => (req, res, next) => {
 
 
 
-module.exports = authWithRole;
+module.exports = authWithRoleAndFullAccess;

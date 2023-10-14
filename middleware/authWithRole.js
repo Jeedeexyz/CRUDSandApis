@@ -3,7 +3,7 @@ const jwt = require("jsonwebtoken");
 
 const authWithRole = (Role) => (req, res, next) => {
   try {
-    req.headers.authorization && 
+   req.headers.authorization && 
     req.headers.authorization.startsWith("Bearer");
 
     let token = req.headers.authorization.split(" ")[1];
@@ -16,7 +16,7 @@ const authWithRole = (Role) => (req, res, next) => {
         return res.status(403).json({ message: "Invalid Token" });
       }
 
-      if (Role.include(user.Role) ) {
+      if (Role.includes(user.role) ) {
       
         next();
 
@@ -26,7 +26,7 @@ const authWithRole = (Role) => (req, res, next) => {
       
     });
   } catch (error) {
-    res.status(500).json({ message: "Internal server Error!" });
+    res.status(500).json({ error:error.message });
   }
 };
 
