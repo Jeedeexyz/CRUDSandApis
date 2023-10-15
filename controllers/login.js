@@ -44,11 +44,15 @@ const LoginUser = async (req, res) => {
 //This will be only access by Super Admin to add users and update there roles
 
 const registerUserAndUpdateRole = async (req, res) => {
+
+  const { username,email,password,role } = req.body;
   try {
-    const { email, role } = req.body;
     const userExistenceCheck = await loginTest.findOne({ email });
-    if (userExistenceCheck) {
+    if(userExistenceCheck){
       try {
+        if(userExistenceCheck.role === "SuperAdmin"){
+  res.json({message:"You can not update the role of Super Admin!"})
+        }
         const dataAgainstEmail = await loginTest.findOneAndUpdate(
           { email },
           {
@@ -56,16 +60,20 @@ const registerUserAndUpdateRole = async (req, res) => {
           },
           { new: true }
         );
-        res.json(dataAgainstEmail);
+        res.json( dataAgainstEmail);
       } catch (error) {
         res.json({
-          message:
-            "The email is not registered please register it with role to edit it's role again!",
+          error:error.message
         });
       }
-    } else {
+    }  
+    
+    if(!userExistenceCheck){
+      if( role === "SuperAdmin"){
+        res.json({message:"You can not assign super admin to another user!"})
+        return
+       }
       try {
-        const { username, email, password, role } = req.body;
         const hashPassword = await bcrypt.hash(password, 10);
         const loginUser = new loginTest({
           username,
@@ -75,6 +83,7 @@ const registerUserAndUpdateRole = async (req, res) => {
         });
         await loginUser.save();
         res.status(201).json({ message: "User created !" });
+     
       } catch (error) {
         res.status(500).json({ error: error.message });
       }
