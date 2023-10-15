@@ -27,6 +27,9 @@ const userSchema = new mongoose.Schema({
     type : String,
     enum: ["Admin","Manager","Customer","Leader","Super Admin"],
     required : true
+  },
+  otp :{
+    type:String
   }
 });
 

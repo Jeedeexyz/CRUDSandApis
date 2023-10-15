@@ -1,7 +1,7 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const loginTest = require("../models/login");
-const dotenv = require("dotenv")
+const dotenv = require("dotenv");
 const nodemailer = require("nodemailer");
 const { nextTick } = require("process");
 dotenv.config();
@@ -10,7 +10,7 @@ dotenv.config();
 
 const SignupUser = async (req, res) => {
   try {
-    const { username, email, password} = req.body;
+    const { username, email, password } = req.body;
     const hashPassword = await bcrypt.hash(password, 10);
     const loginUser = new loginTest({
       username,
@@ -31,27 +31,30 @@ const LoginUser = async (req, res) => {
     const { email, password } = req.body;
     const user = await loginTest.findOne({ email: email });
     if (user && (await bcrypt.compare(password, user.password))) {
-      const token = jwt.sign({ id: user.id, role: user.role}, process.env.PRIVATE_KEY, { expiresIn: "1hr" });
-      res.status(200).json({message:`Login as ${user.role}`, token });
+      const token = jwt.sign(
+        { id: user.id, role: user.role },
+        process.env.PRIVATE_KEY,
+        { expiresIn: "1hr" }
+      );
+      res.status(200).json({ message: `Login as ${user.role}`, token });
     } else {
       res.status(401).json({ error: "Invalid credentional" });
     }
   } catch (error) {
-    res.status(500).json({ message:"Error in controller" });
+    res.status(500).json({ message: "Error in controller" });
   }
 };
 
 //This will be only access by Super Admin to add users and update there roles
 
 const registerUserAndUpdateRole = async (req, res) => {
-
-  const { username,email,password,role } = req.body;
+  const { username, email, password, role } = req.body;
   try {
     const userExistenceCheck = await loginTest.findOne({ email });
-    if(userExistenceCheck){
+    if (userExistenceCheck) {
       try {
-        if(userExistenceCheck.role === "SuperAdmin"){
-  res.json({message:"You can not update the role of Super Admin!"})
+        if (userExistenceCheck.role === "SuperAdmin") {
+          res.json({ message: "You can not update the role of Super Admin!" });
         }
         const dataAgainstEmail = await loginTest.findOneAndUpdate(
           { email },
@@ -60,19 +63,21 @@ const registerUserAndUpdateRole = async (req, res) => {
           },
           { new: true }
         );
-        res.json( dataAgainstEmail);
+        res.json(dataAgainstEmail);
       } catch (error) {
         res.json({
-          error:error.message
+          error: error.message,
         });
       }
-    }  
-    
-    if(!userExistenceCheck){
-      if( role === "SuperAdmin"){
-        res.json({message:"You can not assign super admin to another user!"})
-        return
-       }
+    }
+
+    if (!userExistenceCheck) {
+      if (role === "SuperAdmin") {
+        res.json({
+          message: "You can not assign super admin to another user!",
+        });
+        return;
+      }
       try {
         const hashPassword = await bcrypt.hash(password, 10);
         const loginUser = new loginTest({
@@ -83,7 +88,6 @@ const registerUserAndUpdateRole = async (req, res) => {
         });
         await loginUser.save();
         res.status(201).json({ message: "User created !" });
-     
       } catch (error) {
         res.status(500).json({ error: error.message });
       }
@@ -96,8 +100,8 @@ const registerUserAndUpdateRole = async (req, res) => {
 //This will handle the forget request
 const forgetPassword = async (req, res) => {
   try {
-    const { email } = req.body ;
-   
+    const { email } = req.body;
+
     const userData = await loginTest.findOne({ email: email });
     if (!userData) {
       res.json({ message: "This email is not registered !" });
@@ -134,7 +138,7 @@ const forgetPassword = async (req, res) => {
 
     transporter.sendMail(mailOptions, function (error, info) {
       if (error) {
-        res.json({ messsage:"Email is not sent !!!!!!" });
+        res.json({ messsage: "Email is not sent !!!!!!" });
       } else {
         res.json({ message: "The email is sent !" });
       }
@@ -143,33 +147,29 @@ const forgetPassword = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-//This will handle the forget password request by otp 
+//This will handle the forget password request by otp
 const forgetPasswordWithOTP = async (req, res) => {
   try {
-    const { email } = req.body ;
-
-    const userData = await loginTest.findOne({ email: email });
-   
-    if (!userData) {
-      res.json({ message: "This email is not registered !" });
+    const { email } = req.body;
+    function OTPgenerator (){
+      let OTP = Math.floor(1000+(Math.random()*9000))
+      return OTP;
     }
+
+    const otp = OTPgenerator();
+    const userData = await loginTest.findOne({ email: email });
+
+    if (!userData) {
+     return res.json({ message: "This email is not registered !" });
+    } else {
+       await loginTest.findOneAndUpdate({email},{$set : {otp : otp}},{new:true})
+     }
     const Secret = process.env.PRIVATE_KEY + userData.password;
-    function otpGenerator (){ 
-          
-      let digits = '0123456789'; 
-      let OTP = ''; 
-      for (let i = 0; i < 4; i++ ) { 
-          OTP += digits[Math.floor(Math.random() * 10)]; 
-      } 
-      return OTP; 
-  } 
-
-  const otp = otpGenerator();
-
+  
     const token = jwt.sign(
       { email: userData.email, id: userData._id, otp: otp },
       Secret,
-      { expiresIn: "55m" }
+      { expiresIn: "1hr" }
     );
 
     const link = `http://localhost:${process.env.PORT}/signinSystem/resetPassword/${userData._id}/${token}`;
@@ -180,9 +180,10 @@ const forgetPasswordWithOTP = async (req, res) => {
 
     let smtpConfig = {
       host: "smtp.gmail.com",
-      port: 465,
-      secure: true,
-      service: "gmail",
+      secureConnection: false,
+      port: 587,
+      requiresAuth: true,
+      domains: ["gmail.com", "googlemail.com"],
       auth: {
         user: process.env.email,
         pass: process.env.password,
@@ -195,12 +196,12 @@ const forgetPasswordWithOTP = async (req, res) => {
       from: process.env.email,
       to: userData.email,
       subject: "Reset Password",
-      html: output
+      html: output,
     };
 
     transporter.sendMail(mailOptions, function (error, info) {
       if (error) {
-        res.json({ messsage:"Email is not sent !!!!!!" });
+        res.json({ error: error.message });
       } else {
         res.json({ message: "The email is sent !" });
       }
@@ -228,18 +229,18 @@ const reset = async (req, res) => {
 
 const resetPassword = async (req, res) => {
   const { id, token } = req.params;
-  const { password,confirmPassword } = req.body;
+  const { password, confirmPassword } = req.body;
   const userData = await loginTest.findOne({ _id: id });
   if (!userData) {
     res.json({ message: "User not found !" });
   }
 
-//   if (password !== confirmPassword) {
-//     res.json({ message: "The passwords do not match !" });
-//   }
+  if (password !== confirmPassword) {
+    return res.json({ message: "The passwords do not match !" });
+  }
   const Secret = process.env.PRIVATE_KEY + userData.password;
   try {
-    // const verify = jwt.verify(token, Secret);
+    const verify = jwt.verify(token, Secret);
     const newPassword = await bcrypt.hash(password, 10);
     await loginTest.updateOne(
       { _id: id },
@@ -250,7 +251,8 @@ const resetPassword = async (req, res) => {
       },
       { new: true }
     );
-token.expiresIn = null;
+    token.expiresIn = null;
+
     res.json({ message: "The password is updated !" });
   } catch (error) {
     res.json({ message: "The token is not verified !" });
@@ -260,13 +262,13 @@ token.expiresIn = null;
 //This will get all data
 
 const getAllData = async (req, res) => {
-    try {
-      const getData = await loginTest.find({});
-      res.json(getData);
-    } catch (error) {
-      res.status(500).json({ error: error.message });
-    }
-  };
+  try {
+    const getData = await loginTest.find({});
+    res.json(getData);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
 
 module.exports = {
   SignupUser,
@@ -276,5 +278,5 @@ module.exports = {
   forgetPasswordWithOTP,
   reset,
   resetPassword,
-  getAllData
+  getAllData,
 };

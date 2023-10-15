@@ -7,6 +7,7 @@ const  authenticateWithToken  = require("../middleware/authWithToken");
 const authenticateWithRole = require("../middleware/authWithRole")
 const authWithRoleAtSingin = require("../middleware/authWithRoleAtSingin")
 const authForSuperAdminAcess = require("../middleware/authWithRoleAndAccess")
+const authOTP = require("../middleware/authWithOTP")
 
 //Create user
 router.post("/signup", controller.SignupUser);
@@ -23,9 +24,9 @@ router.post("/forget",controller.forgetPassword)
 router.post("/OTPrequest",controller.forgetPasswordWithOTP)
 
 //Reset route
-router.get("/resetPassword/:id/:token",controller.reset)
+// router.get("/resetPassword/:id/:token",controller.reset)
 
-router.post("/resetPassword/:id/:token",controller.resetPassword)
+router.post("/resetPassword/:id/:token",authOTP,controller.resetPassword)
 
 
 router.get("/users" , controller.getAllData)
